@@ -8,7 +8,7 @@ project_name: autoport
 builds:
   - id: release
     binary: autoport
-    main: ./cmd/cli
+    main: .
     flags:
       - "-trimpath"
     ldflags:
