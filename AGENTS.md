@@ -30,7 +30,7 @@ Use the standard library `testing` package only. No assertion or snapshot librar
 
 ## Cross-platform rules
 
-Linux, macOS and Windows on `amd64` and `arm64` are equal targets, all tested in CI: use `path/filepath` for paths, keep filenames legal on Windows, build-tag anything POSIX-only, and keep `CGO_ENABLED=0`.
+Linux, macOS and Windows on `amd64` and `arm64` are equal release targets. CI tests on Linux only, and `just xbuild` cross-compiles the full matrix, so keep the code portable: use `path/filepath` for paths, keep filenames legal on Windows, build-tag anything POSIX-only, and keep `CGO_ENABLED=0`.
 
 ## Project layout
 
