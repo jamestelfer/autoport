@@ -25,7 +25,6 @@ linters:
 
     # Code quality & modernization
     - gocyclo       # Cyclomatic complexity
-    - testifylint   # Enforce idiomatic Testify assertions in tests
     - misspell      # Fix typos
     - prealloc      # Suggest slice preallocations
     - revive        # Flexible linting framework

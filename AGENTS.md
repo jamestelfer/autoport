@@ -17,7 +17,6 @@ for production code, tests, and tools.
 just verify    # fmt + build + lint + test (run before committing)
 just build     # produces dist/autoport
 just test      # go test ./...
-just snapshots # regenerate go-snaps golden files for review
 just fmt       # gofmt -w .
 just lint      # golangci-lint run ./...
 just xbuild    # goreleaser snapshot build across the full release matrix
@@ -27,25 +26,7 @@ Tool versions (Go, golangci-lint, goreleaser, just) are pinned in `mise.toml`; r
 
 ## Unit tests
 
-- Use `github.com/stretchr/testify/assert` for independent checks and
-  `github.com/stretchr/testify/require` for prerequisites after which the test
-  cannot continue. **All assertions use Testify**: do not call `t.Error`,
-  `t.Errorf`, `t.Fatal`, `t.Fatalf`, `t.Fail`, or `t.FailNow`, and do not build
-  generic hand-written assertion helpers that duplicate Testify.
-- Prefer the semantic Testify assertion (`NoError`, `ErrorIs`, `Equal`,
-  `Contains`, `Len`, and so on) over asserting a precomputed boolean. Remember
-  that `Equal` is type-sensitive; use `EqualValues` only when the production
-  comparison intentionally permits equivalent numeric types.
-- Use `require` only from the test goroutine. Collect worker-goroutine errors
-  and assert them from the test goroutine.
-- Every golden test uses `github.com/gkampitakis/go-snaps/snaps`; do not add
-  ad-hoc `testdata/*.golden` readers or update flags. Use `MatchJSON` for JSON
-  and `MatchSnapshot` for other values. Commit generated `__snapshots__` files,
-  regenerate them with `just snapshots`, and review their diffs rather than
-  editing them by hand.
-- A package containing go-snaps tests must call `snaps.Clean` from its
-  `TestMain` so obsolete snapshots fail the normal test run and can be removed
-  during regeneration.
+Use the standard library `testing` package only. No assertion or snapshot libraries.
 
 ## Cross-platform rules
 
@@ -53,7 +34,7 @@ Linux, macOS and Windows on `amd64` and `arm64` are equal targets, all tested in
 
 ## Project layout
 
-`cmd/cli/` holds the `main` package, built as the `autoport` binary. Application logic grows into packages alongside it; `main` stays a thin layer over them.
+`main.go` in the repository root holds the whole program, built as the `autoport` binary. Keep it a single file with no dependencies outside the Go standard library.
 
 ## Commits and PR titles
 
@@ -74,23 +55,12 @@ Use Conventional Commits for all commit messages and PR titles. `pr-title.yml` e
 
 release-please opens a release PR from Conventional Commits on `main`. Merging it creates a draft release and pushes the `v*` tag; `release.yml` then runs the shared chinmina GoReleaser workflow, which builds the matrix, attests provenance, publishes the draft, and commits the Homebrew cask to `jamestelfer/homebrew-tap` and the Nix recipe to `jamestelfer/nixpkgs`. The workflows mint keyless tokens through octo-sts, against the `release-please-autoport`, `release-autoport` and `release-tap` trust policies in `jamestelfer/.github`. Repository configuration follows `docs/reference/repository-configuration.md` in `chinmina/.github`.
 
-## Major dependencies
+## Dependencies
 
-Use Context7 for up-to-date documentation — do not guess at APIs. Query the Context7 ID before using any unfamiliar or version-sensitive API (Go 1.27 and several of these post-date the knowledge cutoff). Every ID below has been resolved and confirmed to exist; do not invent one.
+The program uses the Go standard library only. Do not add third-party modules.
 
-| Library / source | Context7 ID | Notes |
-|---|---|---|
-| `github.com/urfave/cli/v3` | `/urfave/cli` | **The CLI framework. All command line argument handling uses urfave/cli v3** — never `flag`, never a hand-rolled parser. Note v3 is `cli.Command`, not v2's `cli.App`, so most v2 answers do not transfer |
-| GoReleaser | `/goreleaser/goreleaser` | Release/snapshot builds; ldflags inject `main.version`/`commit`/`date` |
-| `github.com/stretchr/testify` | `/stretchr/testify` | All unit-test assertions; use `assert` for independent checks and `require` for prerequisites |
-| `github.com/gkampitakis/go-snaps` | `/gkampitakis/go-snaps` | All golden/snapshot tests; JSON uses `snaps.MatchJSON` |
-
-The Go stdlib is not on Context7: use upstream docs directly. Watch for Go 1.27 idioms the linter enforces, such as `errors.AsType[T](err)` over `errors.As(err, &target)`.
+Use Context7 for up-to-date GoReleaser documentation (`/goreleaser/goreleaser`); ldflags inject `main.version`, `main.commit` and `main.date`. The Go stdlib is not on Context7: use upstream docs directly.
 
 ### CLI conventions
 
-`run(args, stdout, stderr) int` stays a pure function of its arguments so it is
-testable without a process boundary. urfave/cli's default `ExitErrHandler`
-writes to a package global and calls `os.Exit`, so it is replaced with a no-op
-and exit-code mapping is done in `run`. Exit codes: `0` success, `1` runtime
-failure, `2` usage error.
+Arguments are handled directly from `os.Args`. `--version` as the only argument prints the build metadata. With no arguments, the program prints usage to stderr and exits `1`. Otherwise it joins the arguments with `::`, hashes them with FNV-1a, and prints a port in the range 10000–65535 to stdout.

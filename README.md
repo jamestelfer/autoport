@@ -21,7 +21,7 @@ Install with any of:
 mise use -g github:jamestelfer/autoport
 brew install jamestelfer/tap/autoport
 nix profile install github:jamestelfer/nixpkgs#autoport
-go install github.com/jamestelfer/autoport/cmd/cli@latest
+go install github.com/jamestelfer/autoport@latest
 ```
 
 ## Development
